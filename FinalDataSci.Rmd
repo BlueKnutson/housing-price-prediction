@@ -1,0 +1,234 @@
+---
+title: "Data Sci 101 Project"
+author: "Blue"
+date: "2023-08-15"
+output:
+  word_document: default
+  html_document: default
+---
+
+
+
+
+
+```{r}
+set.seed(123); rnorm(1)
+library(readr)
+library(caret)
+ames <- read_csv("ames2000_NAfix.csv") # read in data
+library(ISLR)
+HousingData = data.frame(ames) # turn into a dataframe
+
+
+
+
+
+```
+
+```{r}
+#clean data
+
+
+# Calculate the average of each numeric column
+contVar <- c("Lot.Frontage", "Lot.Area", "Mas.Vnr.Area", "BsmtFin.SF.2", "BsmtFin.SF.2", "Bsmt.Unf.SF", "Total.Bsmt.SF", "X1st.Flr.SF", "X2nd.Flr.SF", "Enclosed.Porch", "X3Ssn.Porch", "Screen.Porch", "Pool.Area", "Misc.Val", "SalePrice") # collecting all continous variables to clean
+
+for (i in contVar) {
+  HousingData[, i] <- as.numeric(HousingData[, i])
+}# turning each variable into a numeric
+
+numeric_columns <- sapply(HousingData, is.numeric)
+
+for (col_name in names(HousingData)[numeric_columns]) {
+  avg_value <- mean(HousingData[[col_name]], na.rm = TRUE)
+  HousingData[[col_name]][is.na(HousingData[[col_name]])] <- avg_value
+} 
+
+
+#for(i in 1:ncol(HousingData)){
+  #if(is.numeric(HousingData[,i])){
+  #  mean = mean(HousingData[,i], na.rm = T)}
+  #for(i in 1:nrow(HousingData)){
+ # if(is.na(HousingData[,i][x])){
+ #  HousingData[,i][x] = mean}
+#}}
+  
+
+
+for (i in 1:length(HousingData[[col_name]])) {
+  if (is.na(HousingData[[col_name]][i])) {
+    HousingData[[col_name]][i] <- average_value
+  }# getting rid of a NA's and replacing with the average
+}
+
+
+
+```
+
+```{r}
+#clean catagorical data 
+
+
+
+```
+
+
+
+
+```{r}
+#split data
+smp_size = floor(.5 * nrow(HousingData))
+train_Index = sample(seq_len(nrow(HousingData)), size = smp_size)
+trainData = HousingData[train_Index, ]
+testData = HousingData[-train_Index, ]
+
+```
+1) What field does the data come from?
+This data comes from the Ames Assessor's Office.
+
+• What are the goals of the study? Are there any effects of particular interest?
+The goals of the study are to predict Salesprice based on the other given varaibles.
+
+• How might these goals be answered, i.e. tests / confidence intervals?
+This goal can be answered with linear regression taking into account all of the relevant variables.
+
+```{r}
+library(corrplot)
+
+
+# Calculate correlation matrix
+cor_matrix <- cor(trainData[, numeric_columns])
+corrplot(cor_matrix)
+
+
+```
+
+2) How are the predictor variables spread out? Are there any noteworthy features to their spread
+that could be highly influential observations?
+• Are any of the predictor variables highly correlated?
+Yes
+
+```{r}
+# Load ggplot2 library
+library(ggplot2)
+# boxplot of each variable
+boxplot(trainData$Lot.Frontage, main = "Lot.Frontage")
+boxplot(trainData$Lot.Area, main = "Lot.Area")
+boxplot(trainData$Overall.Qual, main = "Overall.Qual")
+boxplot(trainData$Overall.Cond, main = "Overall.Cond")
+boxplot(trainData$Year.Built, main = "Year.Built")
+boxplot(trainData$Year.Remod.Add, main = "Year.Remod.Add")
+boxplot(trainData$TotRms.AbvGrd, main = "TotRms.AbvGrd")
+boxplot(trainData$Full.Bath, main = "Full.Bath")
+boxplot(trainData$Mas.Vnr.Area, main = "Mas.Vnr.Area")
+boxplot(trainData$Total.Bsmt.SF, main = "Total.Bsmt.SF")
+boxplot(trainData$X1st.Flr.SF, main = "X1st.Flr.SF")
+boxplot(trainData$Garage.Area, main = "Garage.Area")
+boxplot(trainData$Gr.Liv.Area, main = "Gr.Liv.Area")
+boxplot(trainData$Fireplaces, main = "Fireplaces")
+boxplot(trainData$Garage.Cars, main = "Garage.Cars")
+#histogram of salePrice
+hist(trainData$SalePrice)
+median(trainData$SalePrice)
+mean(trainData$SalePrice)
+```
+
+
+3) • Which predictor variables, if any, should be included in the model a priori?
+Lot.Frontage, Lot.area, Overall.Qual, Year.Built, Year.Remod.Add, Mas.Vnr.Area, Total.Bsmt.SF, X1st.Flr.SF, Gl.Liv.Area, Full.Bath, TotRms.AbvGrd, Fireplaces, Garage.Cars, Garage.Area
+• Are there any interactions that should be considered for inclusion in the model?
+Yes, the Garage.Cars and Garage.Area should be considered since the two variables are highly related, if there are more garage car spots, the garage area will usually be bigger.
+• Are there any three way interactions that should be considered?
+ Overall.Qual, Overall.Cond, Year.Built, Year.Remod.Add, TotRms.AbvGrd, Full.Bath. This is a six way interaction but it should be considered since as each of these goes up, the saleprice will also go up.
+• Are there any interactions that should NOT be considered?
+
+
+
+```{r}
+# Fit a linear regression model using other varaibles as the predictors
+model <- lm(log(SalePrice) ~ Lot.Frontage * Lot.Area + Overall.Qual*Overall.Cond * Year.Built * Year.Remod.Add*Full.Bath*Half.Bath  + Mas.Vnr.Area + Total.Bsmt.SF * X1st.Flr.SF  +  Gr.Liv.Area * Fireplaces*  Garage.Cars * Garage.Area+TotRms.AbvGrd, data = trainData)
+
+# Plot the model
+plot(model)
+summary(model)
+# Calculate confidence intervals 
+conf_interval <- confint(model)
+print(conf_interval)
+
+
+
+
+```
+
+The residuals graph idicates that the linear regression assumptions (linear correlation, independence of residuals, normality of residuals)
+
+QQ, the graph follows a diagonal line which is good since it means that the residuals are normaly distributed. At the very end, the points deviate however the vast majority of the points indicate the residuals are normally distributed.
+
+the scale location plot is lightly curved out of being horizontal, this means that the variability of residuals is not consistent across different levels of the predictor variables.
+```{r}
+# Calculate the MSE
+actual <- testData$SalePrice
+predicted <- predict(model, newdata = testData)
+mse <- mean((log(actual) - predicted))
+
+# Print the calculated MSE
+cat("Mean Squared Error (MSE):", mse, "\n") #log fits data better
+ 
+
+
+```
+
+```{r}
+# Make predictions using the model and test data
+predictions <- predict(model, newdata = testData)
+
+# Plot the predicted values against the actual SalePrice in the test data
+plot(testData$SalePrice, exp(predictions),
+     xlab = "Actual SalePrice",
+     ylab = "Predicted SalePrice",
+     main = "Predicted vs. Actual SalePrice",
+     xlim=c(0,800000),
+     ylim=c(0, 800000)
+     )
+library(ggplot2)
+
+#scatter plot of salePrice against livArea
+ggplot(data = trainData, aes(x = SalePrice, y = Gr.Liv.Area)) +
+  geom_point() +
+  labs(x = "SalePrice", y = "Gr.Liv.Area", title = "Scatter Plot: SalePrice vs. Gr.Liv.Area")
+
+# Calculate summary statistics for the predictions
+summary(exp(predictions))
+
+
+```
+
+```{r}
+# bototrap the mean
+boot = function(x,stat, B=1000){
+  n = length(x)
+  boot_stats = matrix(nrow = B)
+  boot_average = numeric(B)
+  for(b in 1:1000){#B =1000
+    boot_sample = sample(x,n, replace = TRUE)
+    boot_stats[b] = mean(boot_sample)
+    
+  }
+  return(boot_stats)}
+
+SE = mean(boot(trainData$SalePrice, sd))
+
+
+#95% confidence interval of the Means (SEM)
+mean(exp(predictions))+1.96*SE # upper 97.5
+median(exp(predictions))
+mean(exp(predictions))
+mean(exp(predictions))-1.96*SE # lower 2.5
+
+
+```
+
+
+
+
+
+https://stats.oarc.ucla.edu/r/modules/coding-for-categorical-variables-in-regression-models/
